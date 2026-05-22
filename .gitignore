@@ -1,0 +1,32 @@
+# ── Android ──
+Attendance/.gradle/
+Attendance/build/
+Attendance/app/build/
+Attendance/captures/
+Attendance/local.properties
+Attendance/.idea/
+Attendance/*.iml
+Attendance/app/*.iml
+
+# ── Node.js (attendance-server) ──
+attendance-server/node_modules/
+attendance-server/.env
+attendance-server/.env.local
+attendance-server/npm-debug.log*
+attendance-server/yarn-debug.log*
+attendance-server/yarn-error.log*
+
+# ── JVM / OS / IDE ──
+hs_err_pid*.log
+replay_pid*.log
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ── Secrets ──
+**/serviceAccountKey.json
+**/google-services.json
+# Firebase Admin SDK 키 (admin 권한 유출 방지)
+**/*-firebase-adminsdk-*.json
+**/firebase-adminsdk-*.json
