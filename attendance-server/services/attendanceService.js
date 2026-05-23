@@ -1,4 +1,4 @@
-const {db, admin} = require('../firebase/firebaseAdmin');
+const {db, admin, rtdb} = require('../firebase/firebaseAdmin');
 const {generateSessionCode} = require('../utils/codeGenerator');
 const {generateUwbParams} = require('../utils/uwbParamsGenerator');
 
@@ -51,12 +51,15 @@ exports.startAttendanceSession = async ({courseId, professorId, professorUwbAddr
  * 흐름:
  *   1. sessionCode로 ACTIVE 세션 조회
  *      - 없으면 404 (다른 수업 코드거나 이미 마감)
- *   2. 같은 (sessionCode, studentId)로 이미 레코드 있으면 → 그대로 반환 (멱등)
- *   3. 없으면 새 레코드 생성
+ *   2. 학생이 그 수업 수강 중인지 RTDB Enrollment 검증
+ *      - 미수강이면 403 (다른 강의실 신호 잘못 잡힘 / 부정 출석 차단)
+ *   3. 같은 (sessionCode, studentId)로 이미 레코드 있으면 → 그대로 반환 (멱등)
+ *   4. 없으면 새 레코드 생성
  *
  * 에러는 err.statusCode로 의미 구분:
  *   - 404: 세션 없음 (클라이언트는 스캔 계속)
  *   - 400: 세션 마감 (CLOSED)
+ *   - 403: 수강 안 함 (다른 수업)
  */
 exports.checkInAttendance = async ({sessionCode, studentId, studentUwbAddress}) => {
     // 1. ACTIVE 세션 조회 (sessionCode + status 둘 다로 필터)
@@ -77,7 +80,20 @@ exports.checkInAttendance = async ({sessionCode, studentId, studentUwbAddress}) 
     const session = sessionSnap.docs[0].data();
     const lectureSessionId = session.lectureSessionId;
 
-    // 2. 중복 출석 체크 (멱등)
+    // 2. 수강 검증 — RTDB Enrollment/{studentId}/{courseId} = true 인지 확인
+    //    courseId는 교수가 /start로 보낸 값 (현재 통합에선 classId 문자열, 예: "10")
+    //    Enrollment 키도 동일하게 classId로 통일됨 (FirebaseSeedData.enrollment 참고)
+    const enrollmentSnap = await rtdb
+        .ref(`Enrollment/${studentId}/${session.courseId}`)
+        .once('value');
+
+    if (!enrollmentSnap.exists() || enrollmentSnap.val() !== true) {
+        const err = new Error(`수강 중인 수업이 아닙니다 (courseId=${session.courseId})`);
+        err.statusCode = 403;
+        throw err;
+    }
+
+    // 3. 중복 출석 체크 (멱등)
     const existingSnap = await db.collection('attendance_records')
         .where('sessionCode', '==', sessionCode)
         .where('studentId', '==', studentId)

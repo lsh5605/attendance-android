@@ -23,6 +23,9 @@ object FirebaseSeedData {
             .put("professorAttendanceStatus", professorAttendanceStatus())
             .put("attendanceSummaries", attendanceSummaries())
             .put("attendanceCalendars", attendanceCalendars())
+            // ── 수업 5분 전 알람용 (RtdbScheduleSyncManager가 읽는 스키마) ──
+            .put("Enrollment", enrollment())
+            .put("Subjects", subjects())
     }
 
     private fun users(): JSONObject {
@@ -296,5 +299,116 @@ object FirebaseSeedData {
             .put("classId", classId)
             .put("courseName", courseName)
             .put("status", status)
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // 알람 시스템용 시드 (Enrollment + Subjects)
+    //
+    // RtdbScheduleSyncManager가 읽는 스키마:
+    //   Enrollment/{studentId}/{subjectId} = true
+    //   Subjects/{subjectId}/{
+    //     subjectName, subjectCode, professorName,
+    //     schedule/day1/{ dayOfWeek("Monday"~), location, periods[null, {st,et}, ...] },
+    //     schedule/day2/{ ... }   // 주 N회면 여러 day 키
+    //   }
+    //
+    // periods[0]은 항상 null (대학 1교시부터 시작이라 그렇게 저장).
+    // ────────────────────────────────────────────────────────────
+
+    /**
+     * 학번 → 수강 과목 classId 목록 매핑.
+     *
+     * 키는 classId(String) 사용 — attendance_sessions/professorAttendanceStatus와 일관성 유지.
+     * 교수가 출석 시작 시 보내는 courseId("10")가 그대로 매칭됨.
+     */
+    private fun enrollment(): JSONObject {
+        return JSONObject()
+            .put(
+                "202312345",
+                JSONObject()
+                    .put("10", true)   // 모바일프로그래밍 (MOB001)
+                    .put("11", true)   // 자료구조 (DATA001)
+                    .put("12", true)   // 소프트웨어공학 (SW001)
+            )
+    }
+
+    /**
+     * 과목별 시간표 (RtdbScheduleSyncManager.parseSubject가 파싱하는 형식).
+     *
+     * 키는 classId(String) — Enrollment와 동일. subjectCode 필드는 정보 보존용으로 유지.
+     */
+    private fun subjects(): JSONObject {
+        return JSONObject()
+            .put(
+                "10",
+                subject(
+                    code = "MOB001",
+                    name = "모바일프로그래밍 (영어강의)",
+                    professor = "민홍",
+                    location = "AI관-301",
+                    days = listOf(
+                        SubjectDay("Tuesday", "14:00", "15:00"),
+                        SubjectDay("Thursday", "13:00", "15:00")
+                    )
+                )
+            )
+            .put(
+                "11",
+                subject(
+                    code = "DATA001",
+                    name = "자료구조 및 실습 (영어강의)",
+                    professor = "김교수",
+                    location = "AI관-511",
+                    days = listOf(
+                        SubjectDay("Tuesday", "10:00", "11:00"),
+                        SubjectDay("Thursday", "10:00", "12:00")
+                    )
+                )
+            )
+            .put(
+                "12",
+                subject(
+                    code = "SW001",
+                    name = "소프트웨어공학 (신기술화상강의)",
+                    professor = "박교수",
+                    location = "화상강의실",
+                    days = listOf(
+                        SubjectDay("Friday", "10:00", "12:00")
+                    )
+                )
+            )
+    }
+
+    private data class SubjectDay(val dayOfWeek: String, val start: String, val end: String)
+
+    private fun subject(
+        code: String,
+        name: String,
+        professor: String,
+        location: String,
+        days: List<SubjectDay>
+    ): JSONObject {
+        val scheduleNode = JSONObject()
+        days.forEachIndexed { i, d ->
+            val periods = JSONArray()
+                .put(JSONObject.NULL)   // 0번 인덱스는 항상 null (1교시부터 시작)
+                .put(
+                    JSONObject()
+                        .put("startTime", d.start)
+                        .put("endTime", d.end)
+                )
+            scheduleNode.put(
+                "day${i + 1}",
+                JSONObject()
+                    .put("dayOfWeek", d.dayOfWeek)
+                    .put("location", location)
+                    .put("periods", periods)
+            )
+        }
+        return JSONObject()
+            .put("subjectCode", code)
+            .put("subjectName", name)
+            .put("professorName", professor)
+            .put("schedule", scheduleNode)
     }
 }

@@ -214,7 +214,17 @@ public class AttendanceController {
                                    Response<ApiResponse<CheckInData>> response) {
 
                 if (!response.isSuccessful()) {
-                    Log.d(TAG, "check-in 비성공 (" + response.code() + ") → 스캔 유지");
+                    // 비성공은 모두 스캔 유지 (다음 광고 또는 PIN 입력 대기).
+                    //   404: 잘못된 sessionCode (이미 마감/타 강의 신호)
+                    //   403: 수강 안 한 수업 — 다른 강의실 BLE 신호가 잡힌 경우.
+                    //        Service 안 죽이고 스캔 계속하면 진짜 듣는 수업 광고 잡을 기회 살아있음.
+                    //        (PIN 수동 입력 시 사용자 알림은 후속 작업에서 별도 broadcast로 처리)
+                    // notifyFailed는 stopSelf까지 부르니까 여기선 호출 X.
+                    if (response.code() == 403) {
+                        Log.w(TAG, "수강 안 한 수업 (403) → 무시하고 스캔 유지: " + sessionCode);
+                    } else {
+                        Log.d(TAG, "check-in 비성공 (" + response.code() + ") → 스캔 유지");
+                    }
                     return;
                 }
 

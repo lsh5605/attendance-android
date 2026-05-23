@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import com.example.myapplication.launcher.AttendanceServiceLauncher
+import com.example.myapplication.schedule.work.ScheduleSyncWorker
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -42,6 +43,14 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         readLoginInfo()
+
+        // 학생이면 시간표 12시간 주기 동기화 + 알람 등록 트리거.
+        // 통합 전엔 MainActivity2가 학번 입력 UI에서 호출했지만, 이제 로그인 후 자동.
+        // Worker가 끝에 ScheduleAlarmManager.rescheduleAll로 수업 5분 전 알람도 등록.
+        if (userRole == "student" && studentNumber.isNotEmpty()) {
+            ScheduleSyncWorker.enqueueOnce(this, studentNumber)
+            ScheduleSyncWorker.enqueuePeriodic(this, studentNumber)
+        }
 
         attendanceLauncher = AttendanceServiceLauncher(this)
         attendanceLauncher.setListener(object : AttendanceServiceLauncher.SessionEventsListener {
