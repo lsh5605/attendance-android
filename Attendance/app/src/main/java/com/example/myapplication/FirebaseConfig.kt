@@ -8,11 +8,10 @@ package com.example.myapplication
  *   - RtdbScheduleSyncManager (내 시간표 12h 동기화)
  *   - FirebaseSeedData (첫 실행 시드 주입)
  *
- * 현재: mobile-cb29c (개발/테스트용)
- * 향후: attendanceapp-cbf00 (그쪽 팀 공유 RTDB)로 전환 예정 — 이 한 줄만 수정.
+ * 현재: attendanceapp-cbf00 (gachon-attendance-app 팀 프로젝트)
  *
  * 주의: trailing slash 없음. FirebaseClient가 "${BASE_URL}/${path}.json" 형식으로 붙임.
  */
 object FirebaseConfig {
-    const val BASE_URL = "https://mobile-cb29c-default-rtdb.asia-southeast1.firebasedatabase.app"
+    const val BASE_URL = "https://attendanceapp-cbf00-default-rtdb.asia-southeast1.firebasedatabase.app"
 }

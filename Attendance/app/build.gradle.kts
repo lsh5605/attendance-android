@@ -14,10 +14,10 @@ android {
     }
 
     defaultConfig {
-        // namespace는 com.example.myapplication (R 클래스 경로) 이지만
-        // applicationId는 기존 Firebase 프로젝트 google-services.json 매칭 위해 유지.
-        // Phase 5에서 Firebase 콘솔 정리 후 통일 검토.
-        applicationId = "com.example.attendance"
+        // namespace는 com.example.myapplication (R 클래스 경로) 그대로.
+        // applicationId는 attendanceapp-cbf00 google-services.json에 등록된 앱과 매칭.
+        // (google-services.json엔 com.example.gachonattendance와 com.example.uwbattendance 둘 다 있음)
+        applicationId = "com.example.gachonattendance"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
